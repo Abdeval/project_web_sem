@@ -1,0 +1,35 @@
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:   <http://www.w3.org/2002/07/owl#> .
+@prefix pizza: <https://example.org/pizza#> .
+
+pizza:Pizza         rdf:type owl:Class ;
+                    rdfs:label "Pizza" .
+
+pizza:Margherita    rdf:type pizza:Pizza ;
+                    rdfs:label "Margherita" ;
+                    pizza:hasTopping pizza:TomatoSauce ;
+                    pizza:hasTopping pizza:Mozzarella .
+
+pizza:Pepperoni     rdf:type pizza:Pizza ;
+                    rdfs:label "Pepperoni" ;
+                    pizza:hasTopping pizza:TomatoSauce ;
+                    pizza:hasTopping pizza:PepperoniMeat .
+
+pizza:FourCheese    rdf:type pizza:Pizza ;
+                    rdfs:label "Four Cheese" ;
+                    pizza:hasTopping pizza:Mozzarella ;
+                    pizza:hasTopping pizza:Cheddar ;
+                    pizza:hasTopping pizza:Parmesan ;
+                    pizza:hasTopping pizza:Gorgonzola .
+
+pizza:TomatoSauce   rdf:type owl:Class ; rdfs:label "Tomato Sauce" .
+pizza:Mozzarella    rdf:type owl:Class ; rdfs:label "Mozzarella" .
+pizza:PepperoniMeat rdf:type owl:Class ; rdfs:label "Pepperoni Meat" .
+pizza:Cheddar       rdf:type owl:Class ; rdfs:label "Cheddar" .
+pizza:Parmesan      rdf:type owl:Class ; rdfs:label "Parmesan" .
+pizza:Gorgonzola    rdf:type owl:Class ; rdfs:label "Gorgonzola" .
+
+pizza:hasTopping    rdf:type owl:ObjectProperty ;
+                    rdfs:domain pizza:Pizza ;
+                    rdfs:label "has topping" .
