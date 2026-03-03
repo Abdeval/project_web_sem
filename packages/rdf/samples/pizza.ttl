@@ -1,35 +1,298 @@
-@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+﻿@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix owl:   <http://www.w3.org/2002/07/owl#> .
-@prefix pizza: <https://example.org/pizza#> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix pizza: <http://www.co-ode.org/ontologies/pizza/pizza.owl#> .
 
-pizza:Pizza         rdf:type owl:Class ;
-                    rdfs:label "Pizza" .
+pizza:Pizza a owl:Class ;
+    rdfs:label "Pizza"@en ;
+    rdfs:comment "A pizza is a type of food."@en .
 
-pizza:Margherita    rdf:type pizza:Pizza ;
-                    rdfs:label "Margherita" ;
-                    pizza:hasTopping pizza:TomatoSauce ;
-                    pizza:hasTopping pizza:Mozzarella .
+pizza:NamedPizza a owl:Class ;
+    rdfs:subClassOf pizza:Pizza ;
+    rdfs:label "NamedPizza"@en .
 
-pizza:Pepperoni     rdf:type pizza:Pizza ;
-                    rdfs:label "Pepperoni" ;
-                    pizza:hasTopping pizza:TomatoSauce ;
-                    pizza:hasTopping pizza:PepperoniMeat .
+pizza:PizzaTopping a owl:Class ;
+    rdfs:label "PizzaTopping"@en .
 
-pizza:FourCheese    rdf:type pizza:Pizza ;
-                    rdfs:label "Four Cheese" ;
-                    pizza:hasTopping pizza:Mozzarella ;
-                    pizza:hasTopping pizza:Cheddar ;
-                    pizza:hasTopping pizza:Parmesan ;
-                    pizza:hasTopping pizza:Gorgonzola .
+pizza:PizzaBase a owl:Class ;
+    rdfs:label "PizzaBase"@en .
 
-pizza:TomatoSauce   rdf:type owl:Class ; rdfs:label "Tomato Sauce" .
-pizza:Mozzarella    rdf:type owl:Class ; rdfs:label "Mozzarella" .
-pizza:PepperoniMeat rdf:type owl:Class ; rdfs:label "Pepperoni Meat" .
-pizza:Cheddar       rdf:type owl:Class ; rdfs:label "Cheddar" .
-pizza:Parmesan      rdf:type owl:Class ; rdfs:label "Parmesan" .
-pizza:Gorgonzola    rdf:type owl:Class ; rdfs:label "Gorgonzola" .
+pizza:MeatTopping a owl:Class ;
+    rdfs:subClassOf pizza:PizzaTopping ;
+    rdfs:label "MeatTopping"@en .
 
-pizza:hasTopping    rdf:type owl:ObjectProperty ;
-                    rdfs:domain pizza:Pizza ;
-                    rdfs:label "has topping" .
+pizza:VegetableTopping a owl:Class ;
+    rdfs:subClassOf pizza:PizzaTopping ;
+    rdfs:label "VegetableTopping"@en .
+
+pizza:CheeseTopping a owl:Class ;
+    rdfs:subClassOf pizza:PizzaTopping ;
+    rdfs:label "CheeseTopping"@en .
+
+pizza:SeafoodTopping a owl:Class ;
+    rdfs:subClassOf pizza:PizzaTopping ;
+    rdfs:label "SeafoodTopping"@en .
+
+pizza:SauceTopping a owl:Class ;
+    rdfs:subClassOf pizza:PizzaTopping ;
+    rdfs:label "SauceTopping"@en .
+
+pizza:ThinAndCrispyBase a owl:Class ;
+    rdfs:subClassOf pizza:PizzaBase ;
+    rdfs:label "ThinAndCrispyBase"@en .
+
+pizza:DeepPanBase a owl:Class ;
+    rdfs:subClassOf pizza:PizzaBase ;
+    rdfs:label "DeepPanBase"@en .
+
+pizza:MozzarellaTopping a owl:Class ;
+    rdfs:subClassOf pizza:CheeseTopping ;
+    rdfs:label "MozzarellaTopping"@en .
+
+pizza:ParmesanTopping a owl:Class ;
+    rdfs:subClassOf pizza:CheeseTopping ;
+    rdfs:label "ParmesanTopping"@en .
+
+pizza:GoatsCheeseTopping a owl:Class ;
+    rdfs:subClassOf pizza:CheeseTopping ;
+    rdfs:label "GoatsCheeseTopping"@en .
+
+pizza:GorgonzolaTopping a owl:Class ;
+    rdfs:subClassOf pizza:CheeseTopping ;
+    rdfs:label "GorgonzolaTopping"@en .
+
+pizza:PepperoniTopping a owl:Class ;
+    rdfs:subClassOf pizza:MeatTopping ;
+    rdfs:label "PepperoniTopping"@en .
+
+pizza:HamTopping a owl:Class ;
+    rdfs:subClassOf pizza:MeatTopping ;
+    rdfs:label "HamTopping"@en .
+
+pizza:SpicyBeefTopping a owl:Class ;
+    rdfs:subClassOf pizza:MeatTopping ;
+    rdfs:label "SpicyBeefTopping"@en .
+
+pizza:ChickenTopping a owl:Class ;
+    rdfs:subClassOf pizza:MeatTopping ;
+    rdfs:label "ChickenTopping"@en .
+
+pizza:TomatoTopping a owl:Class ;
+    rdfs:subClassOf pizza:VegetableTopping ;
+    rdfs:label "TomatoTopping"@en .
+
+pizza:OnionTopping a owl:Class ;
+    rdfs:subClassOf pizza:VegetableTopping ;
+    rdfs:label "OnionTopping"@en .
+
+pizza:MushroomTopping a owl:Class ;
+    rdfs:subClassOf pizza:VegetableTopping ;
+    rdfs:label "MushroomTopping"@en .
+
+pizza:PepperTopping a owl:Class ;
+    rdfs:subClassOf pizza:VegetableTopping ;
+    rdfs:label "PepperTopping"@en .
+
+pizza:OliveTopping a owl:Class ;
+    rdfs:subClassOf pizza:VegetableTopping ;
+    rdfs:label "OliveTopping"@en .
+
+pizza:CaperTopping a owl:Class ;
+    rdfs:subClassOf pizza:VegetableTopping ;
+    rdfs:label "CaperTopping"@en .
+
+pizza:ArtichokeTopping a owl:Class ;
+    rdfs:subClassOf pizza:VegetableTopping ;
+    rdfs:label "ArtichokeTopping"@en .
+
+pizza:TunaMayonnaiseTopping a owl:Class ;
+    rdfs:subClassOf pizza:SeafoodTopping ;
+    rdfs:label "TunaMayonnaiseTopping"@en .
+
+pizza:AnchoviesTopping a owl:Class ;
+    rdfs:subClassOf pizza:SeafoodTopping ;
+    rdfs:label "AnchoviesTopping"@en .
+
+pizza:PrawnsTopping a owl:Class ;
+    rdfs:subClassOf pizza:SeafoodTopping ;
+    rdfs:label "PrawnsTopping"@en .
+
+pizza:TomatoSauce a owl:Class ;
+    rdfs:subClassOf pizza:SauceTopping ;
+    rdfs:label "TomatoSauce"@en .
+
+pizza:Margherita a owl:Class ;
+    rdfs:subClassOf pizza:NamedPizza ;
+    rdfs:label "Margherita"@en ;
+    rdfs:comment "A pizza with tomato and mozzarella"@en .
+
+pizza:Americana a owl:Class ;
+    rdfs:subClassOf pizza:NamedPizza ;
+    rdfs:label "Americana"@en ;
+    rdfs:comment "A pizza with tomato, mozzarella and pepperoni"@en .
+
+pizza:AmericanaHot a owl:Class ;
+    rdfs:subClassOf pizza:NamedPizza ;
+    rdfs:label "AmericanaHot"@en ;
+    rdfs:comment "A spicy pizza with pepperoni"@en .
+
+pizza:Cajun a owl:Class ;
+    rdfs:subClassOf pizza:NamedPizza ;
+    rdfs:label "Cajun"@en .
+
+pizza:Capricciosa a owl:Class ;
+    rdfs:subClassOf pizza:NamedPizza ;
+    rdfs:label "Capricciosa"@en .
+
+pizza:Caprina a owl:Class ;
+    rdfs:subClassOf pizza:NamedPizza ;
+    rdfs:label "Caprina"@en .
+
+pizza:FourSeasons a owl:Class ;
+    rdfs:subClassOf pizza:NamedPizza ;
+    rdfs:label "FourSeasons"@en .
+
+pizza:FruttiDiMare a owl:Class ;
+    rdfs:subClassOf pizza:NamedPizza ;
+    rdfs:label "FruttiDiMare"@en .
+
+pizza:Giardiniera a owl:Class ;
+    rdfs:subClassOf pizza:NamedPizza ;
+    rdfs:label "Giardiniera"@en .
+
+pizza:LaReine a owl:Class ;
+    rdfs:subClassOf pizza:NamedPizza ;
+    rdfs:label "LaReine"@en .
+
+pizza:Mushroom a owl:Class ;
+    rdfs:subClassOf pizza:NamedPizza ;
+    rdfs:label "Mushroom"@en .
+
+pizza:Napoletana a owl:Class ;
+    rdfs:subClassOf pizza:NamedPizza ;
+    rdfs:label "Napoletana"@en .
+
+pizza:Parmense a owl:Class ;
+    rdfs:subClassOf pizza:NamedPizza ;
+    rdfs:label "Parmense"@en .
+
+pizza:PolloAdAstra a owl:Class ;
+    rdfs:subClassOf pizza:NamedPizza ;
+    rdfs:label "PolloAdAstra"@en .
+
+pizza:PrinceCarlo a owl:Class ;
+    rdfs:subClassOf pizza:NamedPizza ;
+    rdfs:label "PrinceCarlo"@en .
+
+pizza:QuattroFormaggi a owl:Class ;
+    rdfs:subClassOf pizza:NamedPizza ;
+    rdfs:label "QuattroFormaggi"@en .
+
+pizza:Rosa a owl:Class ;
+    rdfs:subClassOf pizza:NamedPizza ;
+    rdfs:label "Rosa"@en .
+
+pizza:Siciliana a owl:Class ;
+    rdfs:subClassOf pizza:NamedPizza ;
+    rdfs:label "Siciliana"@en .
+
+pizza:Soho a owl:Class ;
+    rdfs:subClassOf pizza:NamedPizza ;
+    rdfs:label "Soho"@en .
+
+pizza:Veneziana a owl:Class ;
+    rdfs:subClassOf pizza:NamedPizza ;
+    rdfs:label "Veneziana"@en .
+
+pizza:hasTopping a owl:ObjectProperty ;
+    rdfs:domain pizza:Pizza ;
+    rdfs:range pizza:PizzaTopping ;
+    rdfs:label "hasTopping"@en .
+
+pizza:hasBase a owl:ObjectProperty ;
+    rdfs:domain pizza:Pizza ;
+    rdfs:range pizza:PizzaBase ;
+    rdfs:label "hasBase"@en .
+
+pizza:isIngredientOf a owl:ObjectProperty ;
+    rdfs:domain pizza:PizzaTopping ;
+    rdfs:range pizza:Pizza ;
+    rdfs:label "isIngredientOf"@en .
+
+pizza:isBaseOf a owl:ObjectProperty ;
+    rdfs:domain pizza:PizzaBase ;
+    rdfs:range pizza:Pizza ;
+    rdfs:label "isBaseOf"@en .
+
+pizza:isChildOf a owl:ObjectProperty ;
+    rdfs:label "isChildOf"@en .
+
+pizza:isToppingOf a owl:ObjectProperty ;
+    rdfs:subPropertyOf pizza:isIngredientOf ;
+    rdfs:label "isToppingOf"@en .
+
+pizza:hasSpiciness a owl:DatatypeProperty ;
+    rdfs:domain pizza:PizzaTopping ;
+    rdfs:range xsd:string ;
+    rdfs:label "hasSpiciness"@en .
+
+pizza:hasCountryOfOrigin a owl:DatatypeProperty ;
+    rdfs:domain pizza:Pizza ;
+    rdfs:range xsd:string ;
+    rdfs:label "hasCountryOfOrigin"@en .
+
+pizza:Margherita pizza:hasTopping pizza:TomatoTopping .
+pizza:Margherita pizza:hasTopping pizza:MozzarellaTopping .
+pizza:Margherita pizza:hasBase pizza:ThinAndCrispyBase .
+pizza:Margherita pizza:hasCountryOfOrigin "Italy" .
+
+pizza:Americana pizza:hasTopping pizza:TomatoTopping .
+pizza:Americana pizza:hasTopping pizza:MozzarellaTopping .
+pizza:Americana pizza:hasTopping pizza:PepperoniTopping .
+pizza:Americana pizza:hasBase pizza:ThinAndCrispyBase .
+pizza:Americana pizza:hasCountryOfOrigin "USA" .
+
+pizza:AmericanaHot pizza:hasTopping pizza:TomatoTopping .
+pizza:AmericanaHot pizza:hasTopping pizza:MozzarellaTopping .
+pizza:AmericanaHot pizza:hasTopping pizza:PepperoniTopping .
+pizza:AmericanaHot pizza:hasBase pizza:ThinAndCrispyBase .
+
+pizza:Napoletana pizza:hasTopping pizza:TomatoTopping .
+pizza:Napoletana pizza:hasTopping pizza:MozzarellaTopping .
+pizza:Napoletana pizza:hasTopping pizza:AnchoviesTopping .
+pizza:Napoletana pizza:hasTopping pizza:CaperTopping .
+pizza:Napoletana pizza:hasBase pizza:ThinAndCrispyBase .
+pizza:Napoletana pizza:hasCountryOfOrigin "Italy" .
+
+pizza:QuattroFormaggi pizza:hasTopping pizza:MozzarellaTopping .
+pizza:QuattroFormaggi pizza:hasTopping pizza:ParmesanTopping .
+pizza:QuattroFormaggi pizza:hasTopping pizza:GorgonzolaTopping .
+pizza:QuattroFormaggi pizza:hasTopping pizza:GoatsCheeseTopping .
+pizza:QuattroFormaggi pizza:hasBase pizza:DeepPanBase .
+
+pizza:FruttiDiMare pizza:hasTopping pizza:TomatoTopping .
+pizza:FruttiDiMare pizza:hasTopping pizza:TunaMayonnaiseTopping .
+pizza:FruttiDiMare pizza:hasTopping pizza:PrawnsTopping .
+pizza:FruttiDiMare pizza:hasTopping pizza:AnchoviesTopping .
+pizza:FruttiDiMare pizza:hasBase pizza:ThinAndCrispyBase .
+
+pizza:LaReine pizza:hasTopping pizza:TomatoTopping .
+pizza:LaReine pizza:hasTopping pizza:MozzarellaTopping .
+pizza:LaReine pizza:hasTopping pizza:HamTopping .
+pizza:LaReine pizza:hasTopping pizza:MushroomTopping .
+pizza:LaReine pizza:hasTopping pizza:OliveTopping .
+pizza:LaReine pizza:hasBase pizza:ThinAndCrispyBase .
+
+pizza:Siciliana pizza:hasTopping pizza:TomatoTopping .
+pizza:Siciliana pizza:hasTopping pizza:MozzarellaTopping .
+pizza:Siciliana pizza:hasTopping pizza:AnchoviesTopping .
+pizza:Siciliana pizza:hasTopping pizza:CaperTopping .
+pizza:Siciliana pizza:hasTopping pizza:OliveTopping .
+pizza:Siciliana pizza:hasBase pizza:DeepPanBase .
+pizza:Siciliana pizza:hasCountryOfOrigin "Italy" .
+
+pizza:PepperoniTopping pizza:hasSpiciness "Hot" .
+pizza:SpicyBeefTopping pizza:hasSpiciness "Hot" .
+pizza:ChickenTopping pizza:hasSpiciness "Mild" .
+pizza:HamTopping pizza:hasSpiciness "Mild" .
