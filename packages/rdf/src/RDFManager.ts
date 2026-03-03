@@ -1,4 +1,4 @@
-import * as fs   from 'fs';
+﻿import * as fs   from 'fs';
 import * as path from 'path';
 import { Triple, GraphStats, RDFFormat, IRDFStore } from './types';
 import { TurtleLoader }     from './loaders/TurtleLoader';
@@ -29,7 +29,18 @@ export class RDFManager implements IRDFStore {
       case 'rdfxml':   loaded = await this.rdfxmlLoader.load(data); break;
       default: throw new Error('[RDFManager] Unsupported format: ' + format);
     }
+
+    // Validate URIs
+    for (const triple of loaded) {
+      if (!triple.isLiteral) {
+        this.validateURI(triple.subject);
+        this.validateURI(triple.predicate);
+        this.validateURI(triple.object);
+      }
+    }
+
     this.triples.push(...loaded);
+
     if (this.triples.length > LARGE_FILE_THRESHOLD) {
       console.warn('Warning: ' + this.triples.length + ' triples loaded (> 1,000,000)');
     }
@@ -57,6 +68,17 @@ export class RDFManager implements IRDFStore {
   getTriples(): Triple[] { return [...this.triples]; }
   clear(): void          { this.triples = []; }
 
+  private validateURI(uri: string): void {
+    if (uri.startsWith('_:')) return;           // blank node standard
+    if (/^n3-\d+$/.test(uri)) return;           // blank node N3.js interne
+    if (/^b0_genid\d+$/.test(uri)) return;      // blank node rdflib interne
+    if (/^[a-z][a-z0-9+\-.]*:/i.test(uri)) return; // IRI valide
+    if (/\s/.test(uri)) {
+      console.warn('[RDFManager] Warning: URI contains whitespace: ' + uri);
+     } else {
+       console.warn('[RDFManager] Warning: Invalid URI: ' + uri);
+    }
+}
   private detectFormat(filePath: string): RDFFormat {
     const ext = path.extname(filePath).toLowerCase();
     switch (ext) {
