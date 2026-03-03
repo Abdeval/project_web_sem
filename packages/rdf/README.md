@@ -1,19 +1,19 @@
-# @kg/rdf — Module RDF I/O & Statistics
+# @kg/rdf ï¿½ Module RDF I/O & Statistics
 
-> **Membre A** — Gestion des Graphes RDF  
-> Projet Web Sémantique — Système de Gestion de Base de Connaissances
+> **Membre A** ï¿½ Gestion des Graphes RDF  
+> Projet Web Sï¿½mantique ï¿½ Systï¿½me de Gestion de Base de Connaissances
 
 ---
 
 ## Description
 
-Ce module est responsable de toute la couche I/O RDF du système.  
+Ce module est responsable de toute la couche I/O RDF du systï¿½me.  
 Il permet de charger, exporter et calculer des statistiques sur des graphes RDF.  
 Il sert de base aux modules SPARQL, Raisonnement et Visualisation.
 
 ---
 
-## Formats supportés
+## Formats supportï¿½s
 
 | Format    | Extension             | Chargement | Export |
 |-----------|-----------------------|:----------:|:------:|
@@ -79,39 +79,45 @@ Depuis le dossier packages/rdf :
 
 ## Lancer la demonstration
 
-    npx ts-node demo/index.ts
+    npm run demo:rdf
 
-Resultat attendu :
+Resultat obtenu :
 
     === RDF I/O & Statistics Demo ===
 
     1. Loading Turtle file: samples/pizza.ttl
-       OK Loaded in 25ms
+       OK Loaded in 15ms
 
-    2. Graph Statistics:
-       - Total triples:     31
-       - Unique subjects:   11
-       - Unique predicates: 4
-       - Unique objects:    20
-       - Literals:          11
-       - IRIs:              20
+    Graph Statistics:
+       - Total triples:     1944
+       - Unique subjects:   597
+       - Unique predicates: 34
+       - Unique objects:    890
+       - Literals:          370
+       - IRIs:              1574
        Top predicates:
-         1. rdf:type (11 occurrences)
-         2. rdfs:label (11 occurrences)
-         3. pizza:hasTopping (8 occurrences)
+         1. rdf:type (382 occurrences)
+         2. rdfs:subClassOf (259 occurrences)
+         3. rdf:first (234 occurrences)
+         4. rdf:rest (234 occurrences)
+         5. rdfs:label (194 occurrences)
 
-    3. Exporting to RDF/XML...
-       OK Exported in 79ms
-
-    4. Re-importing exported RDF/XML...
-       OK Loaded in 16ms
-
-    5. Verifying round-trip...
-       OK Graph structure preserved (31 triples)
+    2. Export to Turtle
+       OK Exported in 9ms
+    3. Re-import exported Turtle
+       OK Graph structure preserved (1944 triples)
+    4. Export to RDF/XML
+       OK Exported in 12ms
+    5. Re-import exported RDF/XML
+       OK Round-trip completed (1929/1944 triples preserved)
+    6. Export to N-Triples
+       OK Exported in 9ms
+    7. Re-import N-Triples
+       OK Round-trip completed (1929/1944 triples preserved)
+    8. Error handling test
+       OK Error caught: [TurtleLoader] Parse error
 
     === Demo completed successfully ===
-
----
 
 ## Lancer les tests
 
@@ -206,5 +212,5 @@ Ce module exporte l'interface IRDFStore utilisee par :
 
 ## Auteur
 
-Membre A — Module RDF I/O & Statistics  
-Projet Web Semantique — Master Informatique
+Membre A ï¿½ Module RDF I/O & Statistics  
+Projet Web Semantique ï¿½ Master Informatique
