@@ -1,112 +1,158 @@
 /**
- * Query Manager - SPARQL query execution engine
+ * QueryManager - Main entry point for the SPARQL module
  * Implements IQueryEngine from @kg/core
  */
 
 import { IQueryEngine, IRDFStore, QueryResult, QueryHistoryEntry } from '@kg/core';
-import { Parser } from 'sparqljs';
+import { SPARQLEngine } from './engine/SPARQLEngine';
+import { QueryHistory } from './history/QueryHistory';
+import { SPARQLCompleter, CompletionItem } from './autocomplete/SPARQLCompleter';
+import { CSVExporter } from './exporters/CSVExporter';
+import { JSONExporter } from './exporters/JSONExporter';
+import { XMLExporter } from './exporters/XMLExporter';
+import { TableFormatter } from './formatters/TableFormatter';
+import { GraphFormatter } from './formatters/GraphFormatter';
+import { BooleanFormatter } from './formatters/BooleanFormatter';
 
 export class QueryManager implements IQueryEngine {
-    private parser: InstanceType<typeof Parser>;
-    private history: QueryHistoryEntry[] = [];
+    private engine: SPARQLEngine;
+    private history: QueryHistory;
+    private completer: SPARQLCompleter;
+    private csvExporter: CSVExporter;
+    private jsonExporter: JSONExporter;
+    private xmlExporter: XMLExporter;
+    private tableFormatter: TableFormatter;
+    private graphFormatter: GraphFormatter;
+    private booleanFormatter: BooleanFormatter;
 
     constructor() {
-        this.parser = new Parser();
+        this.engine = new SPARQLEngine();
+        this.history = new QueryHistory();
+        this.completer = new SPARQLCompleter();
+        this.csvExporter = new CSVExporter();
+        this.jsonExporter = new JSONExporter();
+        this.xmlExporter = new XMLExporter();
+        this.tableFormatter = new TableFormatter();
+        this.graphFormatter = new GraphFormatter();
+        this.booleanFormatter = new BooleanFormatter();
     }
 
+    // ──────────────────────────────────────────────────────
+    // IQueryEngine implementation
+    // ──────────────────────────────────────────────────────
+
+    /**
+     * Execute a SPARQL query (SELECT, CONSTRUCT, ASK) against the given store.
+     * Automatically saves to query history.
+     */
     async execute(query: string, store: IRDFStore): Promise<QueryResult> {
         const startTime = Date.now();
+        let result: QueryResult;
 
         try {
-            // Parse the query
-            const parsed = this.parser.parse(query);
-
-            // Check if it's a query (not an update)
-            if ('queryType' in parsed) {
-                const queryType = parsed.queryType.toUpperCase();
-
-                // Execute based on type
-                let result: QueryResult;
-                switch (queryType) {
-                    case 'SELECT':
-                        result = await this.executeSelect(query, store);
-                        break;
-                    case 'CONSTRUCT':
-                        result = await this.executeConstruct(query, store);
-                        break;
-                    case 'ASK':
-                        result = await this.executeAsk(query, store);
-                        break;
-                    default:
-                        throw new Error(`Unsupported query type: ${queryType}`);
-                }
-
-                result.executionTime = Date.now() - startTime;
-
-                // Save to history
-                this.history.push({
-                    id: Date.now().toString(),
-                    query,
-                    timestamp: new Date(),
-                    result,
-                });
-
-                return result;
-            } else {
-                throw new Error('UPDATE queries are not supported yet');
-            }
+            result = await this.engine.execute(query, store);
+            result.executionTime = Date.now() - startTime;
+            this.history.save(query, result);
+            return result;
         } catch (error: any) {
-            throw new Error(`Query execution failed: ${error.message}`);
+            const errorResult: QueryResult = {
+                type: 'SELECT',
+                variables: [],
+                bindings: [],
+                executionTime: Date.now() - startTime,
+            };
+            this.history.save(query, errorResult, error.message);
+            throw error;
         }
     }
 
+    /**
+     * Validate SPARQL query syntax without executing.
+     */
     validate(query: string): { valid: boolean; error?: string } {
-        try {
-            this.parser.parse(query);
-            return { valid: true };
-        } catch (error: any) {
-            return { valid: false, error: error.message };
-        }
+        return this.engine.validate(query);
     }
 
+    /**
+     * Get all history entries.
+     */
     getHistory(): QueryHistoryEntry[] {
-        return this.history;
+        return this.history.getAll();
     }
 
+    /**
+     * Clear query history.
+     */
     clearHistory(): void {
-        this.history = [];
+        this.history.clear();
     }
 
+    /**
+     * Export a query result to the specified format.
+     * - 'csv' : SELECT → RFC 4180 CSV
+     * - 'json': All types → SPARQL JSON Results Format
+     * - 'xml' : SELECT/ASK → SPARQL XML Results Format
+     */
     async exportResult(result: QueryResult, format: 'csv' | 'json' | 'xml'): Promise<string> {
-        // TODO: Implement export
-        if (format === 'json') {
-            return JSON.stringify(result, null, 2);
+        switch (format) {
+            case 'csv':
+                return this.csvExporter.export(result);
+            case 'json':
+                return this.jsonExporter.export(result);
+            case 'xml':
+                return this.xmlExporter.export(result);
+            default:
+                throw new Error(`Unknown export format: ${format}`);
         }
-        throw new Error(`Export format ${format} not implemented yet`);
     }
 
-    private async executeSelect(_query: string, _store: IRDFStore): Promise<QueryResult> {
-        // TODO: Implement SELECT execution using rdflib
-        return {
-            type: 'SELECT',
-            variables: [],
-            bindings: [],
-        };
+    // ──────────────────────────────────────────────────────
+    // Extended API
+    // ──────────────────────────────────────────────────────
+
+    /**
+     * Format a result as human-readable text (for CLI/demo output).
+     */
+    formatResult(result: QueryResult): string {
+        switch (result.type) {
+            case 'SELECT':
+                return this.tableFormatter.formatWithSummary(result);
+            case 'CONSTRUCT':
+            case 'DESCRIBE':
+                return this.graphFormatter.format(result);
+            case 'ASK':
+                return this.booleanFormatter.formatWithLabel(result);
+            default:
+                return JSON.stringify(result, null, 2);
+        }
     }
 
-    private async executeConstruct(_query: string, _store: IRDFStore): Promise<QueryResult> {
-        // TODO: Implement CONSTRUCT execution
-        return {
-            type: 'CONSTRUCT',
-            triples: [],
-        };
+    /**
+     * Replay a query from history by ID.
+     * Returns the query string (caller must re-execute).
+     */
+    replayFromHistory(id: string): string | undefined {
+        return this.history.replay(id);
     }
 
-    private async executeAsk(_query: string, _store: IRDFStore): Promise<QueryResult> {
-        // TODO: Implement ASK execution
-        return {
-            type: 'ASK',
-            boolean: false,
-        };
+    /**
+     * Get auto-completion suggestions for the current query text.
+     */
+    getCompletions(text: string, cursorPos: number, store?: IRDFStore): CompletionItem[] {
+        return this.completer.getCompletions(text, cursorPos, store);
+    }
+
+    /**
+     * Detect the type of a SPARQL query without executing it.
+     */
+    detectQueryType(query: string): 'SELECT' | 'CONSTRUCT' | 'ASK' | 'DESCRIBE' | 'UNKNOWN' {
+        return this.engine.detectType(query);
+    }
+
+    /**
+     * Get history entry count.
+     */
+    get historySize(): number {
+        return this.history.size;
     }
 }
