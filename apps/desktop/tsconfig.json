@@ -16,7 +16,16 @@
       "ES2020",
       "DOM",
       "DOM.Iterable"
-    ]
+    ],
+    "paths": {
+      "@kg/visualization/*": [
+        "../../packages/visualization/src/*"
+      ],
+      "@kg/core/*": [
+        "../../packages/core/src/*"
+      ]
+    },
+    "baseUrl": "."
   },
   "include": [
     "src/**/*"

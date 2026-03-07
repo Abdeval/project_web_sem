@@ -2,8 +2,9 @@
  * Electron Main Process
  */
 
-import { app, BrowserWindow, ipcMain, dialog } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, Menu } from 'electron';
 import path from 'path';
+import fs from 'fs';
 import { createMenu } from './menu';
 
 const isDev = process.env.NODE_ENV === 'development';
@@ -27,7 +28,7 @@ function createWindow(): void {
     });
 
     if (isDev) {
-        mainWindow.loadURL('http://localhost:5173');
+        mainWindow.loadURL('http://localhost:5174');
         mainWindow.webContents.openDevTools();
     } else {
         mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
@@ -35,6 +36,8 @@ function createWindow(): void {
 
     mainWindow.once('ready-to-show', () => mainWindow?.show());
     mainWindow.on('closed', () => { mainWindow = null; });
+
+    // ✅ Menu natif Electron (File/Edit/View/Help)
     createMenu(mainWindow);
 }
 
@@ -67,4 +70,13 @@ ipcMain.handle('dialog:saveFile', async (_event, defaultName: string) => {
         ],
     });
     return result.canceled ? null : result.filePath;
+});
+
+ipcMain.handle('file:write', async (_event, filePath: string, content: string) => {
+    try {
+        fs.writeFileSync(filePath, content, 'utf-8');
+        return { success: true };
+    } catch (e) {
+        return { success: false, error: String(e) };
+    }
 });

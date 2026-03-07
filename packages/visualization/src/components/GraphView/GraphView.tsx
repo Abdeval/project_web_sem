@@ -40,6 +40,7 @@ export const GraphView: React.FC<GraphViewProps> = ({
     const [edgeCount, setEdgeCount] = useState(0);
     const [isLargeGraph, setIsLargeGraph] = useState(false);
 
+    // ── FIX 1 : Pas de guillemets dans font-family pour Cytoscape ──
     const buildStylesheet = useCallback(() => [
         {
             selector: 'node',
@@ -49,7 +50,7 @@ export const GraphView: React.FC<GraphViewProps> = ({
                 'border-color': c.border,
                 label: 'data(label)',
                 'font-size': '11px',
-                'font-family': "'JetBrains Mono', monospace",
+                'font-family': 'JetBrains Mono, monospace',
                 color: c.textPrimary,
                 'text-valign': 'bottom',
                 'text-halign': 'center',
@@ -97,7 +98,7 @@ export const GraphView: React.FC<GraphViewProps> = ({
                 'curve-style': 'bezier',
                 label: 'data(label)',
                 'font-size': '9px',
-                'font-family': "'JetBrains Mono', monospace",
+                'font-family': 'JetBrains Mono, monospace',
                 color: c.textSecondary,
                 'text-rotation': 'autorotate',
                 'text-margin-y': -8,
@@ -123,7 +124,7 @@ export const GraphView: React.FC<GraphViewProps> = ({
         },
     ], [c]);
 
-    // Build/rebuild Cytoscape when triples change
+    // ── FIX 2 : Vérifier que cy n'est pas détruit avant la fin du layout ──
     useEffect(() => {
         if (!containerRef.current) return;
 
@@ -137,19 +138,38 @@ export const GraphView: React.FC<GraphViewProps> = ({
         setNodeCount(elements.nodes.length);
         setEdgeCount(elements.edges.length);
 
-        if (cyRef.current) { cyRef.current.destroy(); cyRef.current = null; }
+        // Détruire proprement l'instance précédente
+        if (cyRef.current) {
+            try {
+                cyRef.current.stop();
+                cyRef.current.destroy();
+            } catch (_) { }
+            cyRef.current = null;
+        }
+
+        let destroyed = false;
 
         const cy = cytoscape({
             container: containerRef.current,
             elements: [...elements.nodes, ...elements.edges],
             style: buildStylesheet() as cytoscape.StylesheetStyle[],
-            layout: LayoutManager.getLayout(currentLayout, elements.nodes.length) as cytoscape.LayoutOptions,
             minZoom: 0.05,
             maxZoom: 4,
-            wheelSensitivity: 0.3,
+        });
+
+        // Lancer le layout dans le prochain frame pour éviter notify sur destroy immédiat
+        const layoutOptions = LayoutManager.getLayout(currentLayout, elements.nodes.length) as cytoscape.LayoutOptions;
+
+        let rafId: number;
+        rafId = requestAnimationFrame(() => {
+            if (destroyed || !cyRef.current) return;
+            try {
+                cy.layout(layoutOptions).run();
+            } catch (_) { }
         });
 
         cy.on('tap', 'node', (evt: EventObject) => {
+            if (destroyed) return;
             const node = evt.target as NodeSingular;
             const data: NodeData = {
                 id: node.id(),
@@ -165,6 +185,7 @@ export const GraphView: React.FC<GraphViewProps> = ({
         });
 
         cy.on('tap', (evt: EventObject) => {
+            if (destroyed) return;
             if (evt.target === cy) {
                 setSelectedNode(null);
                 onNodeSelect?.(null);
@@ -173,26 +194,38 @@ export const GraphView: React.FC<GraphViewProps> = ({
 
         cyRef.current = cy;
 
-        return () => { cy.destroy(); cyRef.current = null; };
+        return () => {
+            destroyed = true;
+            cancelAnimationFrame(rafId);
+            try {
+                cy.stop();
+                cy.destroy();
+            } catch (_) { }
+            cyRef.current = null;
+        };
     }, [triples, maxNodes]);
 
     // Update stylesheet only when theme changes
     useEffect(() => {
         if (!cyRef.current) return;
-        cyRef.current.style(buildStylesheet() as cytoscape.StylesheetStyle[]);
+        try {
+            cyRef.current.style(buildStylesheet() as cytoscape.StylesheetStyle[]);
+        } catch (_) { }
     }, [theme, buildStylesheet]);
 
     const handleLayoutChange = useCallback((newLayout: LayoutType) => {
         setCurrentLayout(newLayout);
         if (!cyRef.current) return;
-        cyRef.current
-            .layout(LayoutManager.getLayout(newLayout, cyRef.current.nodes().length) as cytoscape.LayoutOptions)
-            .run();
+        try {
+            cyRef.current
+                .layout(LayoutManager.getLayout(newLayout, cyRef.current.nodes().length) as cytoscape.LayoutOptions)
+                .run();
+        } catch (_) { }
     }, []);
 
-    const handleZoomIn = useCallback(() => { cyRef.current?.zoom(cyRef.current.zoom() * 1.3); }, []);
-    const handleZoomOut = useCallback(() => { cyRef.current?.zoom(cyRef.current.zoom() * 0.75); }, []);
-    const handleFit = useCallback(() => { cyRef.current?.fit(undefined, 40); }, []);
+    const handleZoomIn = useCallback(() => { try { cyRef.current?.zoom(cyRef.current.zoom() * 1.3); } catch (_) { } }, []);
+    const handleZoomOut = useCallback(() => { try { cyRef.current?.zoom(cyRef.current.zoom() * 0.75); } catch (_) { } }, []);
+    const handleFit = useCallback(() => { try { cyRef.current?.fit(undefined, 40); } catch (_) { } }, []);
     const handleReset = useCallback(() => { handleLayoutChange(currentLayout); }, [currentLayout, handleLayoutChange]);
 
     return (
@@ -223,7 +256,13 @@ export const GraphView: React.FC<GraphViewProps> = ({
             />
 
             {isLargeGraph && (
-                <div style={{ padding: '8px 16px', background: `${c.warning}22`, borderBottom: `1px solid ${c.warning}44`, fontSize: '12px', color: c.warning }}>
+                <div style={{
+                    padding: '8px 16px',
+                    background: `${c.warning}22`,
+                    borderBottom: `1px solid ${c.warning}44`,
+                    fontSize: '12px',
+                    color: c.warning,
+                }}>
                     ⚠ Large graph — showing first {maxNodes * 3} of {triples.length} triples
                 </div>
             )}
@@ -285,7 +324,7 @@ export const GraphView: React.FC<GraphViewProps> = ({
                     { color: c.nodeResource, label: 'Resource', shape: '●' },
                     { color: c.nodeLiteral, label: 'Literal', shape: '■' },
                     { color: c.nodeClass, label: 'Class', shape: '⬡' },
-                    { color: c.edgeAsserted, label: 'Asserted', shape: '─' },
+                    { color: c.edgeAsserted, label: 'Asserted', shape: '—' },
                     { color: c.edgeInferred, label: 'Inferred', shape: '╌' },
                 ].map(({ color, label, shape }) => (
                     <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
