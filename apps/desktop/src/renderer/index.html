@@ -1,134 +1,56 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Knowledge Graph Desktop</title>
-    <style>
-      body {
-        font-family:
-          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell,
-          sans-serif;
-        margin: 0;
-        padding: 20px;
-        background: #f5f5f5;
-      }
-      .container {
-        max-width: 800px;
-        margin: 0 auto;
-        background: white;
-        padding: 40px;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-      }
-      h1 {
-        color: #333;
-        margin-top: 0;
-      }
-      .module {
-        background: #f9f9f9;
-        padding: 15px;
-        margin: 10px 0;
-        border-left: 4px solid #0074d9;
-        border-radius: 4px;
-      }
-      .module h3 {
-        margin: 0 0 10px 0;
-        color: #0074d9;
-      }
-      .status {
-        display: inline-block;
-        padding: 4px 8px;
-        border-radius: 3px;
-        font-size: 12px;
-        font-weight: bold;
-      }
-      .status.ready {
-        background: #2ecc40;
-        color: white;
-      }
-      .status.pending {
-        background: #ff851b;
-        color: white;
-      }
-      code {
-        background: #f0f0f0;
-        padding: 2px 6px;
-        border-radius: 3px;
-        font-size: 13px;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <h1>🎓 Knowledge Graph Desktop</h1>
-      <p>
-        Application de gestion de graphes de connaissances avec support RDF, OWL, SPARQL et
-        raisonnement sémantique.
-      </p>
 
-      <h2>📦 Modules</h2>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Knowledge Graph Desktop</title>
+  <link href="./index.css" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet" />
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
-      <div class="module">
-        <h3>Core <span class="status ready">READY</span></h3>
-        <p>Types partagés et interfaces pour tous les modules.</p>
-        <p><code>@kg/core</code></p>
-      </div>
+    html,
+    body,
+    #root {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
 
-      <div class="module">
-        <h3>RDF I/O & Statistics <span class="status pending">TODO</span></h3>
-        <p>Chargement et export de graphes RDF (Turtle, RDF/XML, N-Triples).</p>
-        <p><strong>Responsable:</strong> Membre A</p>
-        <p><code>@kg/rdf</code></p>
-      </div>
+    body {
+      background: #f6f8fa;
+      font-family: 'Inter', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
 
-      <div class="module">
-        <h3>Ontology Management <span class="status pending">TODO</span></h3>
-        <p>Gestion des ontologies OWL/RDFS et hiérarchies de classes.</p>
-        <p><strong>Responsable:</strong> Membre B</p>
-        <p><code>@kg/ontology</code></p>
-      </div>
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
 
-      <div class="module">
-        <h3>SPARQL Query Engine <span class="status pending">TODO</span></h3>
-        <p>Exécution de requêtes SPARQL (SELECT, CONSTRUCT, ASK).</p>
-        <p><strong>Responsable:</strong> Membre C</p>
-        <p><code>@kg/sparql</code></p>
-      </div>
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
 
-      <div class="module">
-        <h3>Reasoning Engine <span class="status pending">TODO</span></h3>
-        <p>Moteur de raisonnement RDFS et OWL.</p>
-        <p><strong>Responsable:</strong> Responsable du projet</p>
-        <p><code>@kg/reasoning</code></p>
-      </div>
+    ::-webkit-scrollbar-thumb {
+      background: #d0d7de;
+      border-radius: 3px;
+    }
+  </style>
+</head>
 
-      <div class="module">
-        <h3>Visualization & UI <span class="status pending">TODO</span></h3>
-        <p>Interface graphique et visualisation de graphes.</p>
-        <p><strong>Responsable:</strong> Membre D</p>
-        <p><code>@kg/visualization</code></p>
-      </div>
+<body>
+  <div id="root" className="h-full w-full bg-black"></div>
+  <script type="module" src="./index.tsx"></script>
+</body>
 
-      <h2>🚀 Prochaines étapes</h2>
-      <ol>
-        <li>Installer les dépendances: <code>npm install</code></li>
-        <li>Compiler les modules: <code>npm run build</code></li>
-        <li>
-          Tester les démos:
-          <ul>
-            <li><code>npm run demo:rdf</code></li>
-            <li><code>npm run demo:ontology</code></li>
-            <li><code>npm run demo:sparql</code></li>
-            <li><code>npm run demo:reasoning</code></li>
-          </ul>
-        </li>
-        <li>Consulter la documentation dans <code>docs/members/</code></li>
-      </ol>
-
-      <p style="margin-top: 40px; text-align: center; color: #999">
-        <small>Version 1.0.0 | Knowledge Graph Team © 2026</small>
-      </p>
-    </div>
-  </body>
 </html>

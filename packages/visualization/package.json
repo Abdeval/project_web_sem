@@ -1,35 +1,26 @@
 {
   "name": "@kg/visualization",
   "version": "1.0.0",
-  "description": "Graph Visualization components",
+  "description": "Visualization & UI components for Knowledge Graph Desktop",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "test": "jest",
-    "clean": "rimraf dist"
+    "dev": "tsc --watch"
   },
-  "keywords": [
-    "visualization",
-    "graph",
-    "cytoscape"
-  ],
-  "author": "Membre D",
-  "license": "MIT",
   "dependencies": {
-    "@kg/core": "file:../core",
+    "@kg/core": "*",
     "cytoscape": "^3.28.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
-    "@types/react": "^18.2.48",
-    "@types/react-dom": "^18.2.18",
-    "@types/cytoscape": "^3.19.16",
-    "rimraf": "^5.0.5"
+    "@types/cytoscape": "^3.19.18",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "typescript": "^5.0.0"
   },
   "peerDependencies": {
-    "react": "^18.0.0",
-    "react-dom": "^18.0.0"
+    "react": "^18.0.0"
   }
 }
