@@ -1,0 +1,42 @@
+{
+  "head": {
+    "vars": [
+      "name",
+      "email"
+    ]
+  },
+  "results": {
+    "bindings": [
+      {
+        "name": {
+          "type": "literal",
+          "value": "Alice"
+        },
+        "email": {
+          "type": "literal",
+          "value": "alice@example.com"
+        }
+      },
+      {
+        "name": {
+          "type": "literal",
+          "value": "Bob"
+        },
+        "email": {
+          "type": "literal",
+          "value": "bob@example.com"
+        }
+      },
+      {
+        "name": {
+          "type": "literal",
+          "value": "Charlie"
+        },
+        "email": {
+          "type": "literal",
+          "value": "charlie@example.com"
+        }
+      }
+    ]
+  }
+}

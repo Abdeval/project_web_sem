@@ -5,7 +5,7 @@
 import { Triple, RDFFormat, GraphStats, PrefixMap } from '../types/rdf';
 import { OntologyStructure, ClassNode, PropertyNode } from '../types/ontology';
 import { QueryResult } from '../types/query';
-import { ReasoningConfig, ReasoningResult, InferredTriple } from '../types/reasoning';
+import { ReasoningConfig, ReasoningResult, InferredTriple, ReasoningMode } from '../types/reasoning';
 
 /**
  * RDF Store Interface
@@ -184,4 +184,9 @@ export interface IReasoningEngine {
      * Check ontology consistency
      */
     checkConsistency(store: IRDFStore): Promise<boolean>;
+
+    /**
+     * Get list of supported reasoning modes
+     */
+    getSupportedModes(): ReasoningMode[];
 }
