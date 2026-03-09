@@ -1,0 +1,64 @@
+{
+  "imports": [],
+  "classes": [
+    {
+      "uri": "http://example.org/test#ClassA",
+      "label": "ClassA",
+      "subClassOf": [],
+      "children": []
+    },
+    {
+      "uri": "http://example.org/test#ClassB",
+      "label": "ClassB",
+      "subClassOf": [],
+      "children": []
+    }
+  ],
+  "properties": [
+    {
+      "uri": "http://example.org/test#hasPart",
+      "label": "hasPart",
+      "type": "ObjectProperty",
+      "domain": [
+        "http://example.org/test#ClassA"
+      ],
+      "range": [
+        "http://example.org/test#ClassB"
+      ],
+      "subPropertyOf": [],
+      "children": []
+    }
+  ],
+  "classHierarchy": {
+    "uri": "http://www.w3.org/2002/07/owl#Thing",
+    "label": "Thing",
+    "subClassOf": [],
+    "children": [
+      {
+        "uri": "http://example.org/test#ClassA",
+        "label": "ClassA",
+        "subClassOf": [],
+        "children": []
+      },
+      {
+        "uri": "http://example.org/test#ClassB",
+        "label": "ClassB",
+        "subClassOf": [],
+        "children": []
+      }
+    ]
+  },
+  "propertyHierarchy": {
+    "uri": "http://example.org/test#hasPart",
+    "label": "hasPart",
+    "type": "ObjectProperty",
+    "domain": [
+      "http://example.org/test#ClassA"
+    ],
+    "range": [
+      "http://example.org/test#ClassB"
+    ],
+    "subPropertyOf": [],
+    "children": []
+  }
+}
