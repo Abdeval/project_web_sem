@@ -6,7 +6,8 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "test": "echo \"No automated tests for visualization package\" && exit 0"
   },
   "dependencies": {
     "@kg/core": "*",

@@ -1,24 +1,24 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-    "module": "CommonJS",
-    "moduleResolution": "node",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "jsx": "react-jsx",
-    "outDir": "dist",
-    "rootDir": "src",
     "strict": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
-    "sourceMap": true,
+    "noEmit": true,
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "paths": {
+      "@kg/visualization": ["../../packages/visualization/src/index"],
       "@kg/visualization/*": ["../../packages/visualization/src/*"],
-      "@kg/core/*": ["../../packages/core/src/*"]
+      "@kg/core/*": ["../../packages/core/src/*"],
+      "@assets/*": ["../../assets/*"]
     },
     "baseUrl": "."
   },
-  "include": ["src/main/**/*", "src/preload.ts"],
+  "include": ["src/renderer/**/*"],
   "exclude": ["node_modules", "dist"]
 }

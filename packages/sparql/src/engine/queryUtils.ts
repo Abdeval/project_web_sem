@@ -45,10 +45,14 @@ function evaluateSingle(pattern: any, triples: Triple[], bindings: BindingMap[])
             return evaluateOptional(pattern.patterns, triples, bindings);
         case 'union':
             return evaluateUnion(pattern.patterns, triples, bindings);
-        case 'group':
-            return evaluatePatterns(pattern.patterns, triples, bindings[0] ?? {}).length > 0
-                ? evaluatePatterns(pattern.patterns, triples, bindings[0] ?? {})
-                : bindings;
+        case 'group': {
+            // Evaluate for ALL bindings, not just the first one (was a bug).
+            const groupResults: BindingMap[] = [];
+            for (const binding of bindings) {
+                groupResults.push(...evaluatePatterns(pattern.patterns, triples, binding));
+            }
+            return groupResults.length > 0 ? groupResults : bindings;
+        }
         default:
             // Unknown pattern type — pass through
             return bindings;
@@ -230,10 +234,10 @@ function evalExpr(expr: any, binding: BindingMap): any {
             switch (expr.operator) {
                 case '=': return args[0] === args[1] || String(args[0]) === String(args[1]);
                 case '!=': return String(args[0]) !== String(args[1]);
-                case '<': return String(args[0]) < String(args[1]);
-                case '>': return String(args[0]) > String(args[1]);
-                case '<=': return String(args[0]) <= String(args[1]);
-                case '>=': return String(args[0]) >= String(args[1]);
+                case '<': { const na = parseFloat(String(args[0])), nb = parseFloat(String(args[1])); return (!isNaN(na) && !isNaN(nb)) ? na < nb : String(args[0]) < String(args[1]); }
+                case '>': { const na = parseFloat(String(args[0])), nb = parseFloat(String(args[1])); return (!isNaN(na) && !isNaN(nb)) ? na > nb : String(args[0]) > String(args[1]); }
+                case '<=': { const na = parseFloat(String(args[0])), nb = parseFloat(String(args[1])); return (!isNaN(na) && !isNaN(nb)) ? na <= nb : String(args[0]) <= String(args[1]); }
+                case '>=': { const na = parseFloat(String(args[0])), nb = parseFloat(String(args[1])); return (!isNaN(na) && !isNaN(nb)) ? na >= nb : String(args[0]) >= String(args[1]); }
                 case '&&': return Boolean(args[0]) && Boolean(args[1]);
                 case '||': return Boolean(args[0]) || Boolean(args[1]);
                 case '!': return !Boolean(args[0]);

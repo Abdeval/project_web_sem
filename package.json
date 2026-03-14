@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "npm run dev --workspace=apps/desktop",
     "build": "npm run build --workspaces",
+    "package": "npm run package --workspace=apps/desktop",
     "test": "npm run test --workspaces",
     "lint": "eslint . --ext .ts,.tsx",
     "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
@@ -35,6 +36,8 @@
     "@types/node": "^20.11.0",
     "@typescript-eslint/eslint-plugin": "^8.56.1",
     "@typescript-eslint/parser": "^8.56.1",
+    "electron": "40.8.0",
+    "electron-builder": "26.8.1",
     "eslint": "^8.56.0",
     "husky": "^8.0.3",
     "prettier": "^3.2.4",
@@ -45,8 +48,6 @@
     "npm": ">=9.0.0"
   },
   "dependencies": {
-    "electron": "40.8.0",
-    "electron-builder": "26.8.1"
     "sparqljs": "^3.7.4"
   }
 }

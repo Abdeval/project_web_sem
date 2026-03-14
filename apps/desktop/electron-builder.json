@@ -1,20 +1,35 @@
 {
-    "appId": "com.kg.desktop",
-    "productName": "Knowledge Graph Desktop",
-    "directories": {
-        "output": "release"
-    },
-    "files": [
-        "dist/**/*",
-        "package.json"
-    ],
-    "win": {
-        "target": "nsis"
-    },
-    "mac": {
-        "target": "dmg"
-    },
-    "linux": {
-        "target": "AppImage"
-    }
+  "appId": "com.kg.desktop",
+  "productName": "Knowledge Graph Desktop",
+  "icon": "../../assets/logo",
+  "asar": true,
+  "directories": {
+    "output": "release",
+    "buildResources": "assets"
+  },
+  "files": ["dist/**/*", "package.json"],
+  "extraResources": [
+    { "from": "../../assets/logo.ico", "to": "logo.ico" },
+    { "from": "../../assets/logo.png", "to": "logo.png" }
+  ],
+  "win": {
+    "target": [{ "target": "nsis", "arch": ["x64"] }],
+    "icon": "../../assets/logo.ico",
+    "certificateFile": null,
+    "certificatePassword": null,
+    "signingHashAlgorithms": ["sha256"]
+  },
+  "nsis": {
+    "oneClick": true,
+    "perMachine": false,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "Knowledge Graph Desktop"
+  },
+  "mac": {
+    "target": "dmg"
+  },
+  "linux": {
+    "target": "AppImage"
+  }
 }

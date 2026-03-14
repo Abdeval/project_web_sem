@@ -104,9 +104,9 @@ describe('Export & Round-trip', () => {
     await m.load(SIMPLE_TTL, 'turtle');
     const before = m.getStats().totalTriples;
 
-    const exported = await m.export('ntriples');
+    const exported = await m.export('n-triples');
     m.clear();
-    await m.load(exported, 'ntriples');
+    await m.load(exported, 'n-triples');
 
     expect(m.getStats().totalTriples).toBe(before);
   });
@@ -122,7 +122,7 @@ describe('Export & Round-trip', () => {
     const m = new RDFManager();
     await m.load(SIMPLE_TTL, 'turtle');
     const copy = m.getTriples();
-    copy.push({ subject: 'x', predicate: 'y', object: 'z', isLiteral: false });
+    copy.push({ ...copy[0] });
     expect(m.getTriples()).toHaveLength(4);
   });
 });

@@ -55,25 +55,25 @@ async function main(): Promise<void> {
 
   console.log('\n4. Export to RDF/XML');
   t0 = Date.now();
-  const rdfxml = await manager.export('rdfxml');
+  const rdfxml = await manager.export('rdf-xml');
   console.log('   OK Exported in ' + (Date.now() - t0) + 'ms');
 
   console.log('\n5. Re-import exported RDF/XML');
   manager.clear();
   t0 = Date.now();
-  await manager.load(rdfxml, 'rdfxml');
+  await manager.load(rdfxml, 'rdf-xml');
   console.log('   OK Loaded in ' + (Date.now() - t0) + 'ms');
   checkRoundTrip(stats0.totalTriples, manager.getStats().totalTriples, 'RDF/XML');
 
   console.log('\n6. Export to N-Triples');
   t0 = Date.now();
-  const nt = await manager.export('ntriples');
+  const nt = await manager.export('n-triples');
   console.log('   OK Exported in ' + (Date.now() - t0) + 'ms');
 
   console.log('\n7. Re-import N-Triples');
   manager.clear();
   t0 = Date.now();
-  await manager.load(nt, 'ntriples');
+  await manager.load(nt, 'n-triples');
   console.log('   OK Loaded in ' + (Date.now() - t0) + 'ms');
   checkRoundTrip(stats0.totalTriples, manager.getStats().totalTriples, 'N-Triples');
 

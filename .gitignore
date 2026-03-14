@@ -35,3 +35,11 @@ coverage/
 
 # Electron
 apps/desktop/out/
+apps/desktop/node_modules/
+apps/desktop/dist/
+apps/desktop/build/
+apps/desktop/release/
+apps/desktop/release/**/*.exe
+apps/desktop/release/**/*.blockmap
+assets/samples
+packages/sparql/output/

@@ -11,12 +11,17 @@ const isDev = process.env.NODE_ENV === 'development';
 let mainWindow: BrowserWindow | null = null;
 
 function createWindow(): void {
+    const iconPath = isDev
+        ? path.join(__dirname, '../../../../assets/logo.png')
+        : path.join(process.resourcesPath, 'logo.png');
+
     mainWindow = new BrowserWindow({
         width: 1400,
         height: 900,
         minWidth: 900,
         minHeight: 600,
         title: 'Knowledge Graph Desktop',
+        icon: iconPath,
         backgroundColor: '#f6f8fa',
         webPreferences: {
             preload: path.join(__dirname, '../preload.js'),
@@ -76,6 +81,15 @@ ipcMain.handle('file:write', async (_event, filePath: string, content: string) =
     try {
         fs.writeFileSync(filePath, content, 'utf-8');
         return { success: true };
+    } catch (e) {
+        return { success: false, error: String(e) };
+    }
+});
+
+ipcMain.handle('file:read', async (_event, filePath: string) => {
+    try {
+        const content = fs.readFileSync(filePath, 'utf-8');
+        return { success: true, content };
     } catch (e) {
         return { success: false, error: String(e) };
     }

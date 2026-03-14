@@ -12,18 +12,11 @@
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
     "declaration": true,
+    "declarationMap": true,
+    "composite": true,
     "sourceMap": true,
-    "lib": [
-      "ES2020",
-      "DOM",
-      "DOM.Iterable"
-    ]
+    "lib": ["ES2020", "DOM", "DOM.Iterable"]
   },
-  "include": [
-    "src/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist"
-  ]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
 }
