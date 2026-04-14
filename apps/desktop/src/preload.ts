@@ -1,5 +1,12 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
+interface GraphSnapshotMeta {
+    sourceName: string;
+    format: string;
+    savedAt: string;
+    tripleCount: number;
+}
+
 contextBridge.exposeInMainWorld('electronAPI', {
     openFile: () => ipcRenderer.invoke('dialog:openFile'),
     saveFile: (name: string) => ipcRenderer.invoke('dialog:saveFile', name),
@@ -10,4 +17,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     onExport: (cb: () => void) => ipcRenderer.on('menu:export', cb),
     onToggleTheme: (cb: () => void) => ipcRenderer.on('menu:toggleTheme', cb),
     removeAllListeners: (channel: string) => ipcRenderer.removeAllListeners(channel),
+    // Graph snapshot persistence
+    saveSnapshot: (turtleContent: string, meta: GraphSnapshotMeta) =>
+        ipcRenderer.invoke('graph:saveSnapshot', turtleContent, meta),
+    loadSnapshot: () => ipcRenderer.invoke('graph:loadSnapshot'),
+    clearSnapshot: () => ipcRenderer.invoke('graph:clearSnapshot'),
 });

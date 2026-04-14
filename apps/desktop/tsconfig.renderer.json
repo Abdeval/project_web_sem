@@ -14,6 +14,8 @@
     "paths": {
       "@kg/visualization": ["../../packages/visualization/src/index"],
       "@kg/visualization/*": ["../../packages/visualization/src/*"],
+      "@kg/embeddings": ["../../packages/embeddings/src/index"],
+      "@kg/embeddings/*": ["../../packages/embeddings/src/*"],
       "@kg/core/*": ["../../packages/core/src/*"],
       "@assets/*": ["../../assets/*"]
     },

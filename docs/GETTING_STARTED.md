@@ -80,8 +80,15 @@ Cela compile tous les packages TypeScript en JavaScript.
    ```
 
 4. **Reasoning Demo**
+
    ```bash
    npm run demo:reasoning
+   ```
+
+5. **Embeddings Demo**
+
+   ```bash
+   npm run demo:embeddings
    ```
 
 ### Lancer l'application Electron
@@ -102,6 +109,7 @@ project/
 │   ├── ontology/         # Gestion ontologies
 │   ├── sparql/           # Moteur SPARQL
 │   ├── reasoning/        # Moteur de raisonnement
+│   ├── embeddings/       # Embeddings KGE (TransE/TransH/TransR/DistMult/ComplEx)
 │   └── visualization/    # Visualisation
 ├── apps/
 │   └── desktop/          # Application Electron
@@ -126,6 +134,7 @@ Chaque membre a un README dédié dans `docs/members/` :
 - [03-ontology-management.md](./members/03-ontology-management.md) - Membre B
 - [04-sparql-engine.md](./members/04-sparql-engine.md) - Membre C
 - [05-visualization-ui.md](./members/05-visualization-ui.md) - Membre D
+- [06-embeddings-kge.md](./members/06-embeddings-kge.md) - Module Embeddings
 
 ## 🔧 Développement
 

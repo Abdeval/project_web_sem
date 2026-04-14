@@ -29,8 +29,14 @@ import { RDFManager } from '@kg/rdf';
 import { QueryManager } from '@kg/sparql';
 import { OntologyManager } from '@kg/ontology';
 import { ReasoningEngine } from '@kg/reasoning';
+import { KGEEngine } from '@kg/embeddings';
+import { EmbeddingsPanel } from './components/EmbeddingsPanel';
+import { EmbeddingScatter } from './components/EmbeddingScatter';
 import type {
   ClassNode,
+  EmbeddingAlgorithm,
+  EmbeddingComparisonResult,
+  EmbeddingTrainingConfig,
   PropertyNode,
   Triple as CoreTriple,
   QueryResult as CoreQueryResult,
@@ -40,6 +46,13 @@ import type {
 } from '@kg/core';
 
 // ElectronAPI exposed via contextBridge in preload.ts
+interface GraphSnapshotMeta {
+  sourceName: string;
+  format: string;
+  savedAt: string;
+  tripleCount: number;
+}
+
 interface ElectronAPI {
   openFile: () => Promise<string | null>;
   saveFile: (name: string) => Promise<string | null>;
@@ -50,6 +63,19 @@ interface ElectronAPI {
   onExport: (cb: () => void) => void;
   onToggleTheme: (cb: () => void) => void;
   removeAllListeners: (channel: string) => void;
+  // Graph snapshot persistence
+  saveSnapshot: (
+    turtleContent: string,
+    meta: GraphSnapshotMeta
+  ) => Promise<{ success: boolean; error?: string }>;
+  loadSnapshot: () => Promise<{
+    success: boolean;
+    content?: string;
+    metadata?: GraphSnapshotMeta;
+    reason?: string;
+    error?: string;
+  }>;
+  clearSnapshot: () => Promise<{ success: boolean; error?: string }>;
 }
 declare global {
   interface Window {
@@ -194,12 +220,21 @@ const STATIC_CSS = `
 
 // SAMPLE_TRIPLES, SAMPLE_CLASSES and SAMPLE_PROPERTIES removed — replaced by live state from engines
 
-type Panel = 'rdf' | 'ontology' | 'sparql' | 'reasoning';
+type Panel = 'rdf' | 'ontology' | 'sparql' | 'reasoning' | 'embeddings';
+
+const DEFAULT_EMBEDDING_CONFIG = (algorithm: EmbeddingAlgorithm): EmbeddingTrainingConfig => ({
+  algorithm,
+  dimensions: 24,
+  epochs: 30,
+  learningRate: 0.02,
+  seed: 7,
+});
+
 const PANELS: {
   id: Panel;
   icon: string;
   label: string;
-  getBadge: (t: number, i: number, h: number, o: number) => string;
+  getBadge: (t: number, i: number, h: number, o: number, hasEmbeddingResult: boolean) => string;
 }[] = [
   { id: 'rdf', icon: '⬡', label: 'RDF Data', getBadge: (t) => String(t) },
   {
@@ -210,6 +245,12 @@ const PANELS: {
   },
   { id: 'sparql', icon: '⌕', label: 'SPARQL', getBadge: (_t, _i, h) => (h > 0 ? String(h) : '') },
   { id: 'reasoning', icon: '⟁', label: 'Reasoning', getBadge: (_t, i) => (i > 0 ? `+${i}` : '') },
+  {
+    id: 'embeddings',
+    icon: '◍',
+    label: 'Embeddings',
+    getBadge: (_t, _i, _h, _o, hasEmbeddingResult) => (hasEmbeddingResult ? 'A/B' : ''),
+  },
 ];
 
 // =============================================================================
@@ -224,6 +265,7 @@ const AppInner: React.FC = () => {
   const queryManagerRef = useRef(new QueryManager());
   const ontologyManagerRef = useRef(new OntologyManager());
   const reasoningEngineRef = useRef(new ReasoningEngine());
+  const kgeEngineRef = useRef(new KGEEngine());
 
   const [activePanel, setActivePanel] = useState<Panel>('rdf');
   const [triples, setTriples] = useState<Triple[]>([]);
@@ -238,6 +280,22 @@ const AppInner: React.FC = () => {
   const [reasoningRunning, setReasoningRunning] = useState(false);
   const [status, setStatus] = useState('Ready');
   const [queryHistory, setQueryHistory] = useState<string[]>([]);
+  const [embeddingConfigA, setEmbeddingConfigA] = useState<EmbeddingTrainingConfig>(
+    DEFAULT_EMBEDDING_CONFIG('TransE')
+  );
+  const [embeddingConfigB, setEmbeddingConfigB] = useState<EmbeddingTrainingConfig>(
+    DEFAULT_EMBEDDING_CONFIG('ComplEx')
+  );
+  const [embeddingResult, setEmbeddingResult] = useState<EmbeddingComparisonResult | null>(null);
+  const [embeddingRunning, setEmbeddingRunning] = useState(false);
+  const [isNavCollapsed, setIsNavCollapsed] = useState(false);
+  const [leftPanelWidth, setLeftPanelWidth] = useState(320);
+  const [projectionSplit, setProjectionSplit] = useState(50);
+  const [isResizingPanel, setIsResizingPanel] = useState(false);
+  const [isResizingProjection, setIsResizingProjection] = useState(false);
+  const panelResizeStartRef = useRef<{ x: number; width: number } | null>(null);
+  const projectionResizeStartRef = useRef<{ x: number; split: number } | null>(null);
+  const projectionAreaRef = useRef<HTMLDivElement | null>(null);
 
   // Inject static CSS once
   useEffect(() => {
@@ -307,52 +365,174 @@ const AppInner: React.FC = () => {
     `;
   }, [isDark, T]);
 
+  useEffect(() => {
+    const onMouseMove = (event: MouseEvent): void => {
+      if (isResizingPanel && panelResizeStartRef.current) {
+        const delta = event.clientX - panelResizeStartRef.current.x;
+        const next = Math.max(230, Math.min(520, panelResizeStartRef.current.width + delta));
+        setLeftPanelWidth(next);
+      }
+
+      if (isResizingProjection && projectionResizeStartRef.current && projectionAreaRef.current) {
+        const delta = event.clientX - projectionResizeStartRef.current.x;
+        const totalWidth = projectionAreaRef.current.clientWidth || 1;
+        const deltaPct = (delta / totalWidth) * 100;
+        const next = Math.max(25, Math.min(75, projectionResizeStartRef.current.split + deltaPct));
+        setProjectionSplit(next);
+      }
+    };
+
+    const onMouseUp = (): void => {
+      setIsResizingPanel(false);
+      setIsResizingProjection(false);
+      panelResizeStartRef.current = null;
+      projectionResizeStartRef.current = null;
+    };
+
+    if (isResizingPanel || isResizingProjection) {
+      window.addEventListener('mousemove', onMouseMove);
+      window.addEventListener('mouseup', onMouseUp);
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+  }, [isResizingPanel, isResizingProjection]);
+
+  // ── Factorized RDF loading logic ──────────────────────────────────────────
+  // Called by handleFileLoad, onOpenFile handler, and snapshot restore.
+  const loadRdfContentToState = useCallback(
+    async (content: string, sourceName: string, ext: string): Promise<void> => {
+      const fmt = ext === 'ttl' ? 'turtle' : ext === 'nt' ? 'n-triples' : 'rdf-xml';
+      const rdf = rdfManagerRef.current;
+      rdf.clear();
+      await rdf.load(content, fmt as RDFFormat);
+      const coreTriples = rdf.getTriples();
+      const vizTriples = coreTriplesToViz(coreTriples);
+      const stats = rdf.getStats();
+      setTriples(vizTriples);
+      setInferredTriples([]);
+      setEmbeddingResult(null);
+      setRdfStats({
+        tripleCount: stats.totalTriples,
+        subjectCount: stats.uniqueSubjects,
+        predicateCount: stats.uniquePredicates,
+        objectCount: stats.uniqueObjects,
+        formatDetected: ext === 'ttl' ? 'Turtle' : ext === 'nt' ? 'N-Triples' : 'RDF∕XML',
+      });
+      setStatus(`Loaded ${sourceName} — ${vizTriples.length} triples`);
+      try {
+        const om = ontologyManagerRef.current;
+        const fmt2: 'owl' | 'rdfs' = ext === 'owl' || ext === 'rdf' ? 'owl' : 'rdfs';
+        await om.loadOntology(content, fmt2);
+        const structure = om.getStructure();
+        const hierarchy = om.getClassHierarchy();
+        const vizClasses =
+          hierarchy.children?.length > 0
+            ? hierarchy.children.map(classNodeToViz)
+            : structure.classes.map(classNodeToViz);
+        setOntologyClasses(vizClasses);
+        setOntologyProperties(structure.properties.map(propertyNodeToViz));
+      } catch {
+        /* non-ontology file — ignore */
+      }
+    },
+    []
+  );
+
+  // Fire-and-forget: persist a Turtle snapshot of the current RDF graph.
+  // Strategy: Electron userData file (primary) → localStorage (web fallback).
+  const autoSaveSnapshot = useCallback(
+    async (sourceName: string, format: string): Promise<void> => {
+      try {
+        const turtleContent = await rdfManagerRef.current.export('turtle');
+        const tripleCount = rdfManagerRef.current.getTriples().length;
+        const meta: GraphSnapshotMeta = {
+          sourceName,
+          format,
+          savedAt: new Date().toISOString(),
+          tripleCount,
+        };
+        const api = window.electronAPI;
+        if (api?.saveSnapshot) {
+          // Electron: persist in userData folder
+          await api.saveSnapshot(turtleContent, meta);
+        } else {
+          // Web fallback: persist in localStorage (limit ~5 MB; silent on quota error)
+          try {
+            localStorage.setItem('kg-last-graph-ttl', turtleContent);
+            localStorage.setItem('kg-last-graph-meta', JSON.stringify(meta));
+          } catch {
+            /* storage quota exceeded — graph too large for localStorage, ignore */
+          }
+        }
+      } catch {
+        /* never block the UI on snapshot failure */
+      }
+    },
+    []
+  );
+
+  // Restore last graph snapshot on mount (covers refresh + app restart).
+  // Strategy: Electron userData file (primary) → localStorage (web fallback).
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        let content: string | undefined;
+        let metadata: GraphSnapshotMeta | undefined;
+
+        const api = window.electronAPI;
+        if (api?.loadSnapshot) {
+          // Electron path
+          const result = await api.loadSnapshot();
+          if (result.success && result.content && result.metadata) {
+            content = result.content;
+            metadata = result.metadata;
+          }
+        } else {
+          // Web fallback: read from localStorage
+          const ttl = localStorage.getItem('kg-last-graph-ttl');
+          const raw = localStorage.getItem('kg-last-graph-meta');
+          if (ttl && raw) {
+            content = ttl;
+            metadata = JSON.parse(raw) as GraphSnapshotMeta;
+          }
+        }
+
+        if (cancelled || !content || !metadata) return;
+        setRdfLoading(true);
+        setStatus(`Restoring "${metadata.sourceName}"…`);
+        await loadRdfContentToState(content, metadata.sourceName, 'ttl');
+        setStatus(`Restored "${metadata.sourceName}" (${metadata.tripleCount} triples)`);
+      } catch {
+        /* corrupted snapshot — start empty, never crash */
+      } finally {
+        if (!cancelled) setRdfLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [loadRdfContentToState]);
+
   // Electron menu events
   useEffect(() => {
     const api = window.electronAPI;
     if (!api) return;
     api.onOpenFile(async (p: string) => {
-      setStatus(`Opening ${p}…`);
+      const filename = p.split(/[\\/]/).pop() ?? p;
+      const ext = (p.split('.').pop() ?? 'ttl').toLowerCase();
+      setStatus(`Opening ${filename}…`);
       setActivePanel('rdf');
       setRdfLoading(true);
       setRdfError(null);
       try {
         const result = await api.readFile(p);
         if (!result.success) throw new Error(result.error);
-        const ext = (p.split('.').pop() ?? 'ttl').toLowerCase();
-        const fmt = ext === 'ttl' ? 'turtle' : ext === 'nt' ? 'n-triples' : 'rdf-xml';
-        const rdf = rdfManagerRef.current;
-        rdf.clear();
-        await rdf.load(result.content, fmt as RDFFormat);
-        const coreTriples = rdf.getTriples();
-        const vizTriples = coreTriplesToViz(coreTriples);
-        const stats = rdf.getStats();
-        setTriples(vizTriples);
-        setInferredTriples([]);
-        setRdfStats({
-          tripleCount: stats.totalTriples,
-          subjectCount: stats.uniqueSubjects,
-          predicateCount: stats.uniquePredicates,
-          objectCount: stats.uniqueObjects,
-          formatDetected: ext === 'ttl' ? 'Turtle' : ext === 'nt' ? 'N-Triples' : 'RDF∕XML',
-        });
-        setStatus(`Loaded ${p.split(/[\\/]/).pop()} — ${vizTriples.length} triples`);
-        // Try ontology extraction
-        try {
-          const om = ontologyManagerRef.current;
-          const fmt2: 'owl' | 'rdfs' = ext === 'owl' || ext === 'rdf' ? 'owl' : 'rdfs';
-          await om.loadOntology(result.content, fmt2);
-          const structure = om.getStructure();
-          const hierarchy = om.getClassHierarchy();
-          const vizClasses =
-            hierarchy.children?.length > 0
-              ? hierarchy.children.map(classNodeToViz)
-              : structure.classes.map(classNodeToViz);
-          setOntologyClasses(vizClasses);
-          setOntologyProperties(structure.properties.map(propertyNodeToViz));
-        } catch {
-          /* non-ontology file — ignore */
-        }
+        await loadRdfContentToState(result.content!, filename, ext);
+        void autoSaveSnapshot(filename, ext);
       } catch (e) {
         setRdfError(e instanceof Error ? e.message : 'Failed to load');
         setStatus('Error opening file');
@@ -370,68 +550,40 @@ const AppInner: React.FC = () => {
   }, [toggleTheme]);
 
   // Handlers
-  const handleFileLoad = useCallback(async (file: File) => {
-    setRdfLoading(true);
-    setRdfError(null);
-    setStatus(`Loading ${file.name}…`);
-    try {
-      // Electron exposes the real fs path; fallback to FileReader for web context
-      const api = window.electronAPI;
-      let content: string;
-      const filePath: string = (file as ElectronFile).path ?? '';
-      if (api?.readFile && filePath) {
-        const res = await api.readFile(filePath);
-        if (!res.success) throw new Error(res.error);
-        content = res.content;
-      } else {
-        content = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = (e) => resolve(e.target?.result as string);
-          reader.onerror = reject;
-          reader.readAsText(file);
-        });
-      }
-      const ext = (file.name.split('.').pop() ?? 'ttl').toLowerCase();
-      const fmt = ext === 'ttl' ? 'turtle' : ext === 'nt' ? 'n-triples' : 'rdf-xml';
-      const rdf = rdfManagerRef.current;
-      rdf.clear();
-      await rdf.load(content, fmt as RDFFormat);
-      const coreTriples = rdf.getTriples();
-      const vizTriples = coreTriplesToViz(coreTriples);
-      const stats = rdf.getStats();
-      setTriples(vizTriples);
-      setInferredTriples([]);
-      setRdfStats({
-        tripleCount: stats.totalTriples,
-        subjectCount: stats.uniqueSubjects,
-        predicateCount: stats.uniquePredicates,
-        objectCount: stats.uniqueObjects,
-        formatDetected: ext === 'ttl' ? 'Turtle' : ext === 'nt' ? 'N-Triples' : 'RDF∕XML',
-      });
-      setStatus(`Loaded ${file.name} — ${vizTriples.length} triples`);
-      // Try ontology extraction from the same file
+  const handleFileLoad = useCallback(
+    async (file: File) => {
+      setRdfLoading(true);
+      setRdfError(null);
+      setStatus(`Loading ${file.name}…`);
       try {
-        const om = ontologyManagerRef.current;
-        const fmt2: 'owl' | 'rdfs' = ext === 'owl' || ext === 'rdf' ? 'owl' : 'rdfs';
-        await om.loadOntology(content, fmt2);
-        const structure = om.getStructure();
-        const hierarchy = om.getClassHierarchy();
-        const vizClasses =
-          hierarchy.children?.length > 0
-            ? hierarchy.children.map(classNodeToViz)
-            : structure.classes.map(classNodeToViz);
-        setOntologyClasses(vizClasses);
-        setOntologyProperties(structure.properties.map(propertyNodeToViz));
-      } catch {
-        /* non-ontology file — keep previous ontology state */
+        // Electron exposes the real fs path; fallback to FileReader for web context
+        const api = window.electronAPI;
+        let content: string;
+        const filePath: string = (file as ElectronFile).path ?? '';
+        if (api?.readFile && filePath) {
+          const res = await api.readFile(filePath);
+          if (!res.success) throw new Error(res.error);
+          content = res.content!;
+        } else {
+          content = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target?.result as string);
+            reader.onerror = reject;
+            reader.readAsText(file);
+          });
+        }
+        const ext = (file.name.split('.').pop() ?? 'ttl').toLowerCase();
+        await loadRdfContentToState(content, file.name, ext);
+        void autoSaveSnapshot(file.name, ext);
+      } catch (e: unknown) {
+        setRdfError(e instanceof Error ? e.message : 'Failed');
+        setStatus('Error loading file');
+      } finally {
+        setRdfLoading(false);
       }
-    } catch (e: unknown) {
-      setRdfError(e instanceof Error ? e.message : 'Failed');
-      setStatus('Error loading file');
-    } finally {
-      setRdfLoading(false);
-    }
-  }, []);
+    },
+    [loadRdfContentToState, autoSaveSnapshot]
+  );
 
   const handleExport = useCallback(async (format: string) => {
     setStatus(`Exporting as ${format}…`);
@@ -541,8 +693,65 @@ const AppInner: React.FC = () => {
     }
   }, [reasoningMode]);
 
+  const handleRunEmbeddings = useCallback(async () => {
+    if (triples.length === 0) {
+      setStatus('Load RDF data before running embeddings');
+      return;
+    }
+
+    setEmbeddingRunning(true);
+    setStatus(`Comparing ${embeddingConfigA.algorithm} vs ${embeddingConfigB.algorithm}...`);
+
+    try {
+      const result = await kgeEngineRef.current.compare(
+        rdfManagerRef.current as unknown as IRDFStore,
+        embeddingConfigA,
+        embeddingConfigB
+      );
+
+      setEmbeddingResult(result);
+      setStatus(
+        `Embeddings done — ${result.runA.algorithm} gap ${result.runA.metrics.scoreGap.toFixed(3)} | ${result.runB.algorithm} gap ${result.runB.metrics.scoreGap.toFixed(3)} | recommended: ${result.recommended}`
+      );
+    } catch (e: unknown) {
+      setStatus(`Embeddings error: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setEmbeddingRunning(false);
+    }
+  }, [embeddingConfigA, embeddingConfigB, triples.length]);
+
+  const handleStartPanelResize = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      panelResizeStartRef.current = { x: event.clientX, width: leftPanelWidth };
+      setIsResizingPanel(true);
+    },
+    [leftPanelWidth]
+  );
+
+  const handleStartProjectionResize = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      projectionResizeStartRef.current = { x: event.clientX, split: projectionSplit };
+      setIsResizingProjection(true);
+    },
+    [projectionSplit]
+  );
+
+  const explainEmbeddingResult = useCallback((result: EmbeddingComparisonResult): string => {
+    const run = result.recommended === result.runA.algorithm ? result.runA : result.runB;
+    const alt = result.recommended === result.runA.algorithm ? result.runB : result.runA;
+    const delta = run.metrics.scoreGap - alt.metrics.scoreGap;
+
+    if (delta > 0.5) {
+      return `${run.algorithm} clearly separates positive and negative triples better on this graph (gap +${delta.toFixed(3)}).`;
+    }
+    if (delta > 0.1) {
+      return `${run.algorithm} is moderately better for this dataset, but both models are close in quality.`;
+    }
+    return `Both models perform similarly on this dataset; choose based on interpretability or execution time.`;
+  }, []);
+
   const activePanelInfo = PANELS.find((p) => p.id === activePanel) ?? PANELS[0];
-  const isLoading = rdfLoading || reasoningRunning;
+  const isLoading = rdfLoading || reasoningRunning || embeddingRunning;
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
@@ -681,7 +890,7 @@ const AppInner: React.FC = () => {
         {/* ── Sidebar ── */}
         <aside
           style={{
-            width: 216,
+            width: isNavCollapsed ? 64 : 216,
             background: T.bgSurface,
             borderRight: `1px solid ${T.border}`,
             display: 'flex',
@@ -702,8 +911,22 @@ const AppInner: React.FC = () => {
               textTransform: 'uppercase',
             }}
           >
-            Navigation
+            {isNavCollapsed ? 'Nav' : 'Navigation'}
           </div>
+
+          <button
+            className="btn-ghost"
+            onClick={() => setIsNavCollapsed((prev) => !prev)}
+            title={isNavCollapsed ? 'Expand navigation' : 'Collapse navigation'}
+            style={{
+              margin: '0 6px 8px',
+              justifyContent: isNavCollapsed ? 'center' : 'flex-start',
+              padding: isNavCollapsed ? '6px' : '6px 10px',
+            }}
+          >
+            {isNavCollapsed ? '⟩⟩' : '⟨⟨'}
+            {!isNavCollapsed && <span>Collapse</span>}
+          </button>
 
           {PANELS.map((item) => {
             const isActive = activePanel === item.id;
@@ -711,7 +934,8 @@ const AppInner: React.FC = () => {
               triples.length,
               inferredTriples.length,
               queryHistory.length,
-              ontologyClasses.length
+              ontologyClasses.length,
+              Boolean(embeddingResult)
             );
             return (
               <button
@@ -721,51 +945,55 @@ const AppInner: React.FC = () => {
                   setActivePanel(item.id);
                   setStatus(`Viewing ${item.label}`);
                 }}
+                title={item.label}
+                style={isNavCollapsed ? { justifyContent: 'center', padding: '8px' } : undefined}
               >
                 <span className="nav-icon">{item.icon}</span>
-                <span style={{ flex: 1 }}>{item.label}</span>
-                {badge && <span className="nav-badge">{badge}</span>}
+                {!isNavCollapsed && <span style={{ flex: 1 }}>{item.label}</span>}
+                {!isNavCollapsed && badge && <span className="nav-badge">{badge}</span>}
               </button>
             );
           })}
 
           {/* Bottom section */}
-          <div style={{ marginTop: 'auto' }}>
-            <div className="divider" style={{ margin: '12px 0' }} />
-            <div style={{ padding: '4px 10px', fontSize: 11, color: T.text3 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                <span>Format</span>
-                <span
-                  style={{
-                    fontFamily: "'JetBrains Mono',monospace",
-                    color: T.blueText,
-                    fontWeight: 600,
-                    fontSize: 10,
-                  }}
-                >
-                  {rdfStats?.formatDetected ?? '—'}
-                </span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>Nodes</span>
-                <span
-                  style={{
-                    fontFamily: "'JetBrains Mono',monospace",
-                    fontWeight: 600,
-                    color: T.text2,
-                  }}
-                >
-                  {rdfStats?.subjectCount ?? 0}
-                </span>
+          {!isNavCollapsed && (
+            <div style={{ marginTop: 'auto' }}>
+              <div className="divider" style={{ margin: '12px 0' }} />
+              <div style={{ padding: '4px 10px', fontSize: 11, color: T.text3 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <span>Format</span>
+                  <span
+                    style={{
+                      fontFamily: "'JetBrains Mono',monospace",
+                      color: T.blueText,
+                      fontWeight: 600,
+                      fontSize: 10,
+                    }}
+                  >
+                    {rdfStats?.formatDetected ?? '—'}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Nodes</span>
+                  <span
+                    style={{
+                      fontFamily: "'JetBrains Mono',monospace",
+                      fontWeight: 600,
+                      color: T.text2,
+                    }}
+                  >
+                    {rdfStats?.subjectCount ?? 0}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </aside>
 
         {/* ── Panel ── */}
         <div
           style={{
-            width: 320,
+            width: leftPanelWidth,
             background: T.bgPanel,
             borderRight: `1px solid ${T.border}`,
             display: 'flex',
@@ -822,7 +1050,11 @@ const AppInner: React.FC = () => {
                       ? `${queryHistory.length} queries`
                       : activePanel === 'reasoning'
                         ? `${inferredTriples.length} inferred`
-                        : `${ontologyClasses.length} classes · ${ontologyProperties.length} props`}
+                        : activePanel === 'ontology'
+                          ? `${ontologyClasses.length} classes · ${ontologyProperties.length} props`
+                          : embeddingResult
+                            ? `${embeddingResult.runA.algorithm} vs ${embeddingResult.runB.algorithm}`
+                            : 'Configure algorithm A/B'}
                 </div>
               </div>
             </div>
@@ -835,7 +1067,7 @@ const AppInner: React.FC = () => {
           </div>
 
           {/* Panel body */}
-          <div key={activePanel} className="panel-in" style={{ flex: 1, overflow: 'hidden' }}>
+          <div className="panel-in" style={{ flex: 1, overflow: 'hidden' }}>
             {activePanel === 'rdf' && (
               <RDFPanel
                 stats={rdfStats}
@@ -873,14 +1105,142 @@ const AppInner: React.FC = () => {
                 onApply={handleApplyReasoning}
               />
             )}
+            {activePanel === 'embeddings' && (
+              <EmbeddingsPanel
+                isDark={isDark}
+                configA={embeddingConfigA}
+                configB={embeddingConfigB}
+                onConfigAChange={setEmbeddingConfigA}
+                onConfigBChange={setEmbeddingConfigB}
+                onCompare={handleRunEmbeddings}
+                isRunning={embeddingRunning}
+                result={embeddingResult}
+              />
+            )}
           </div>
         </div>
+
+        <div
+          onMouseDown={handleStartPanelResize}
+          style={{
+            width: 6,
+            cursor: 'col-resize',
+            background: isResizingPanel ? T.blueLight : 'transparent',
+            borderRight: `1px solid ${T.borderSub}`,
+            borderLeft: `1px solid ${T.borderSub}`,
+            flexShrink: 0,
+          }}
+          title="Drag to resize the active panel"
+        />
 
         {/* ── Graph ── */}
         <div
           style={{ flex: 1, padding: 16, overflow: 'hidden', display: 'flex', background: T.bgApp }}
         >
-          <GraphView triples={triples} layout="force" />
+          {activePanel === 'embeddings' && embeddingResult ? (
+            <div
+              ref={projectionAreaRef}
+              style={{
+                display: 'grid',
+                gridTemplateRows: '1fr auto',
+                gap: 12,
+                width: '100%',
+                minWidth: 0,
+              }}
+            >
+              <div style={{ display: 'flex', gap: 8, minWidth: 0 }}>
+                <div style={{ flex: `0 0 ${projectionSplit}%`, minWidth: 0 }}>
+                  <EmbeddingScatter
+                    isDark={isDark}
+                    title={`${embeddingResult.runA.algorithm} projection`}
+                    points={embeddingResult.runA.points2D}
+                    highlightColor="#2563eb"
+                  />
+                </div>
+
+                <div
+                  onMouseDown={handleStartProjectionResize}
+                  style={{
+                    width: 8,
+                    cursor: 'col-resize',
+                    borderRadius: 8,
+                    background: isResizingProjection ? T.blueLight : T.bgSurface,
+                    border: `1px solid ${T.border}`,
+                    flexShrink: 0,
+                  }}
+                  title="Drag to resize projection panes"
+                />
+
+                <div style={{ flex: `1 1 ${100 - projectionSplit}%`, minWidth: 0 }}>
+                  <EmbeddingScatter
+                    isDark={isDark}
+                    title={`${embeddingResult.runB.algorithm} projection`}
+                    points={embeddingResult.runB.points2D}
+                    highlightColor="#dc2626"
+                  />
+                </div>
+              </div>
+
+              <div
+                style={{
+                  border: `1px solid ${T.border}`,
+                  borderRadius: 12,
+                  padding: 12,
+                  background: T.bgSurface,
+                  color: T.text2,
+                  display: 'grid',
+                  gap: 8,
+                }}
+              >
+                <div style={{ fontSize: 13, fontWeight: 700, color: T.text1 }}>
+                  Evaluation and Interpretation
+                </div>
+                <div style={{ fontSize: 12 }}>
+                  Recommended model:{' '}
+                  <strong style={{ color: T.blueText }}>{embeddingResult.recommended}</strong>
+                </div>
+                <div style={{ fontSize: 12 }}>
+                  {embeddingResult.runA.algorithm}: gap{' '}
+                  {embeddingResult.runA.metrics.scoreGap.toFixed(4)}, loss{' '}
+                  {embeddingResult.runA.metrics.finalLoss.toFixed(4)}, time{' '}
+                  {embeddingResult.runA.metrics.executionTime} ms.
+                </div>
+                <div style={{ fontSize: 12 }}>
+                  {embeddingResult.runB.algorithm}: gap{' '}
+                  {embeddingResult.runB.metrics.scoreGap.toFixed(4)}, loss{' '}
+                  {embeddingResult.runB.metrics.finalLoss.toFixed(4)}, time{' '}
+                  {embeddingResult.runB.metrics.executionTime} ms.
+                </div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    borderTop: `1px dashed ${T.border}`,
+                    paddingTop: 8,
+                    color: T.text1,
+                  }}
+                >
+                  {explainEmbeddingResult(embeddingResult)}
+                </div>
+              </div>
+            </div>
+          ) : activePanel === 'embeddings' ? (
+            <div
+              style={{
+                width: '100%',
+                border: `1px dashed ${T.border}`,
+                borderRadius: 12,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: T.text2,
+                fontSize: 14,
+              }}
+            >
+              Run an embeddings comparison to visualize the two projections.
+            </div>
+          ) : (
+            <GraphView triples={triples} layout="force" />
+          )}
         </div>
       </div>
 
@@ -921,6 +1281,7 @@ const AppInner: React.FC = () => {
           {[
             `${triples.length} triples`,
             `${inferredTriples.length} inferred`,
+            embeddingResult ? `rec ${embeddingResult.recommended}` : 'no compare',
             isDark ? 'Dark' : 'Light',
           ].map((txt) => (
             <span

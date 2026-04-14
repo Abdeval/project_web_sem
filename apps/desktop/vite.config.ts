@@ -23,6 +23,7 @@ export default defineConfig({
             '@kg/sparql': resolve(__dirname, '../../packages/sparql/src'),
             '@kg/ontology': resolve(__dirname, '../../packages/ontology/src'),
             '@kg/reasoning': resolve(__dirname, '../../packages/reasoning/src'),
+            '@kg/embeddings': resolve(__dirname, '../../packages/embeddings/src'),
             '@assets': resolve(__dirname, '../../assets'),
         },
     },

@@ -18,6 +18,7 @@
     "demo:ontology": "cd packages/ontology && npx ts-node demo/index.ts",
     "demo:sparql": "cd packages/sparql && npx ts-node demo/index.ts",
     "demo:reasoning": "cd packages/reasoning && npx ts-node demo/index.ts",
+    "demo:embeddings": "cd packages/embeddings && npx ts-node demo/index.ts",
     "demo:viz": "npm run dev --workspace=packages/visualization",
     "postinstall": "husky install || true"
   },

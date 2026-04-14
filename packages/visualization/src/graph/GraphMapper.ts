@@ -59,13 +59,20 @@ export class GraphMapper {
         const nodesMap = new Map<string, CytoscapeNode>();
         const edges: CytoscapeEdge[] = [];
         const classSubjects = new Set<string>();
+        // Deduplicate edges: an RDF triple (subject, predicate, object) is a set element —
+        // the same combination must never produce two visual arrows.
+        const seenEdges = new Set<string>();
 
         for (const triple of triples) {
             if (triple.predicate === RDF_TYPE) classSubjects.add(triple.object);
         }
 
-        for (let i = 0; i < triples.length; i++) {
-            const { subject, predicate, object, inferred = false } = triples[i];
+        for (const { subject, predicate, object, inferred = false } of triples) {
+            // Build a stable, collision-resistant key using a null-byte separator
+            // (URIs never contain \x00, so the key is unambiguous).
+            const edgeKey = `${subject}\x00${predicate}\x00${object}`;
+            if (seenEdges.has(edgeKey)) continue;
+            seenEdges.add(edgeKey);
 
             if (!nodesMap.has(subject)) {
                 nodesMap.set(subject, {
@@ -96,9 +103,11 @@ export class GraphMapper {
                 });
             }
 
+            // Stable, human-readable edge ID derived from the triple content (not an index).
+            const edgeId = `${shortenUri(subject)}__${shortenUri(predicate)}__${shortenUri(object)}`;
             edges.push({
                 data: {
-                    id: `e${i}-${shortenUri(subject)}-${shortenUri(predicate)}-${shortenUri(object)}`,
+                    id: edgeId,
                     source: subject,
                     target: object,
                     label: shortenUri(predicate),

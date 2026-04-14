@@ -1,0 +1,41 @@
+{
+  "name": "@kg/embeddings",
+  "version": "1.0.0",
+  "description": "Knowledge Graph Embeddings module (TransE, TransH, TransR, DistMult, ComplEx)",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest --testPathPattern=tests/",
+    "demo": "ts-node demo/index.ts",
+    "clean": "rimraf dist"
+  },
+  "keywords": [
+    "knowledge-graph",
+    "embeddings",
+    "transe",
+    "transh",
+    "transr",
+    "distmult",
+    "complex"
+  ],
+  "author": "Knowledge Graph Team",
+  "license": "MIT",
+  "dependencies": {
+    "@kg/core": "file:../core"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.11",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.2",
+    "ts-node": "^10.9.2",
+    "rimraf": "^5.0.5"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "moduleNameMapper": {
+      "^@kg/core$": "<rootDir>/../core/src/index.ts"
+    }
+  }
+}

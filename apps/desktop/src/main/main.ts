@@ -94,3 +94,60 @@ ipcMain.handle('file:read', async (_event, filePath: string) => {
         return { success: false, error: String(e) };
     }
 });
+
+// ── Graph snapshot persistence ──────────────────────────────────────────────
+// Stores the last loaded graph as Turtle in the Electron userData folder so it
+// survives page refreshes and application restarts.
+const SNAPSHOT_TTL = 'kg-last-graph.ttl';
+const SNAPSHOT_META = 'kg-last-graph-meta.json';
+
+interface GraphMeta {
+    sourceName: string;
+    format: string;
+    savedAt: string;
+    tripleCount: number;
+}
+
+ipcMain.handle('graph:saveSnapshot', async (
+    _event,
+    turtleContent: string,
+    meta: GraphMeta
+) => {
+    try {
+        const dir = app.getPath('userData');
+        fs.writeFileSync(path.join(dir, SNAPSHOT_TTL), turtleContent, 'utf-8');
+        fs.writeFileSync(path.join(dir, SNAPSHOT_META), JSON.stringify(meta), 'utf-8');
+        return { success: true };
+    } catch (e) {
+        return { success: false, error: String(e) };
+    }
+});
+
+ipcMain.handle('graph:loadSnapshot', async () => {
+    try {
+        const dir = app.getPath('userData');
+        const ttl = path.join(dir, SNAPSHOT_TTL);
+        const meta = path.join(dir, SNAPSHOT_META);
+        if (!fs.existsSync(ttl) || !fs.existsSync(meta)) {
+            return { success: false, reason: 'no-snapshot' };
+        }
+        const content = fs.readFileSync(ttl, 'utf-8');
+        const metadata = JSON.parse(fs.readFileSync(meta, 'utf-8')) as GraphMeta;
+        return { success: true, content, metadata };
+    } catch (e) {
+        return { success: false, error: String(e) };
+    }
+});
+
+ipcMain.handle('graph:clearSnapshot', async () => {
+    try {
+        const dir = app.getPath('userData');
+        const ttl = path.join(dir, SNAPSHOT_TTL);
+        const meta = path.join(dir, SNAPSHOT_META);
+        if (fs.existsSync(ttl)) fs.unlinkSync(ttl);
+        if (fs.existsSync(meta)) fs.unlinkSync(meta);
+        return { success: true };
+    } catch (e) {
+        return { success: false, error: String(e) };
+    }
+});

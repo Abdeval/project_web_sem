@@ -13,17 +13,17 @@
         ┌─────────────────────┼─────────────────────┐
         │                     │                     │
         ▼                     ▼                     ▼
-┌──────────────┐      ┌──────────────┐     ┌──────────────┐
-│ Visualization│      │    SPARQL    │     │  Reasoning   │
-│   Package    │      │   Package    │     │   Package    │
-└──────────────┘      └──────────────┘     └──────────────┘
-        │                     │                     │
-        └─────────────────────┼─────────────────────┘
-                              ▼
-                      ┌──────────────┐
-                      │     Core     │
-                      │   Package    │
-                      └──────────────┘
+┌──────────────┐      ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│ Visualization│      │    SPARQL    │     │  Reasoning   │     │  Embeddings  │
+│   Package    │      │   Package    │     │   Package    │     │   Package    │
+└──────────────┘      └──────────────┘     └──────────────┘     └──────────────┘
+  │                     │                     │                     │
+  └─────────────────────┼─────────────────────┼─────────────────────┘
+            ▼
+          ┌──────────────┐
+          │     Core     │
+          │   Package    │
+          └──────────────┘
                               │
         ┌─────────────────────┼─────────────────────┐
         │                     │                     │
@@ -89,6 +89,17 @@
   - Inference tracker
   - Consistency checker
 
+### Embeddings Package (`@kg/embeddings`)
+
+- **Owner**: Module dédié Embeddings
+- **Purpose**: Knowledge Graph Embeddings training and algorithm comparison
+- **Key Components**:
+  - `KGEEngine` (train + compare)
+  - Multi-model support (TransE, TransH, TransR, DistMult, ComplEx)
+  - Deterministic training via `seed`
+  - Lightweight 2D projection for UI comparison
+  - Comparison metrics and recommended algorithm
+
 ### Visualization Package (`@kg/visualization`)
 
 - **Owner**: Membre D
@@ -120,6 +131,13 @@ User → Enable Reasoning → Reasoning Package → Core Store →
   Inferred Triples → Visualization (highlighted)
 ```
 
+### Training / Comparing Embeddings
+
+```
+User → Embeddings Config (algorithm, dimensions, epochs...) → Embeddings Package →
+Core Store → Metrics + 2D Points → Visualization / Recommendation UI
+```
+
 ## Technology Stack
 
 ### Desktop Framework
@@ -133,6 +151,11 @@ User → Enable Reasoning → Reasoning Package → Core Store →
 - **rdflib.js**: RDF store and I/O
 - **sparqljs**: SPARQL parsing
 - **N3.js**: High-performance Turtle parsing
+
+### Machine Learning (KGE)
+
+- **Custom TS implementations**: TransE, TransH, TransR, DistMult, ComplEx
+- **Seeded random utilities**: deterministic experiments for comparison
 
 ### Visualization
 
